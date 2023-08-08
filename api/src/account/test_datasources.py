@@ -10,7 +10,6 @@ from src.db.schema import user_table, account_table, account_type_table, user_ac
     datasource_type_table
 
 
-@pytest.mark.asyncio
 async def test_find_by_email_id(test_db: AsyncConnection):
     user_id = uuid.uuid4()
     account_id = uuid.uuid4()

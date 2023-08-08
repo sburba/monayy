@@ -2,14 +2,12 @@ from typing import Annotated
 
 from fastapi import APIRouter, Form
 
-from src.incoming_messages import IncomingSms, IncomingEmail
-
 router = APIRouter()
 
 
 @router.post("/account")
-async def receive_sms(sms: IncomingSms):
-    return sms
+async def receive_sms():
+    pass
 
 
 @router.post("/email")
@@ -19,4 +17,4 @@ async def receive_email(
         text: Annotated[str, Form()],
         subject: Annotated[str, Form()]
 ):
-    print(IncomingEmail(subject, text, from_addr, to_addr))
+    pass
