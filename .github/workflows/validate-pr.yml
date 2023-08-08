@@ -1,0 +1,41 @@
+name: validate-pr
+run-name: ${{ github.actor }} is doing a thing
+on: [ pull_request ]
+env:
+  PYTHON_VERSION: 3.11.4
+  POETRY_VERSION: 1.5.1
+jobs:
+  unit-test:
+    runs-on: ubuntu-22.04
+    container:
+      image: python:${{ env.PYTHON_VERSION }}-slim
+    defaults:
+      run:
+        working-directory: api
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v1
+      - name: Load cached Poetry install
+        id: cached-poetry
+        uses: actions/cache@v3
+        with:
+          path: ~/.local
+          key: poetry-${{ env.POETRY_VERSION }}-0
+      - name: Install Poetry
+        if: steps.cached-poetry.outputs.cache-hit != 'true'
+        uses: snok/install-poetry@v1
+        with:
+          version: ${{ env.POETRY_VERSION }}
+          virtualenvs-in-project: true
+      - name: Load cached venv
+        uses: actions/cache@v3
+        with:
+          path: .venv
+          key: venv-${{ runner.os }}-${{ env.PYTHON_VERSION }}-${{ hashFiles('poetry.lock') }}
+          restore-keys: |
+            venv-${{ runner.os }}-${{ env.PYTHON_VERSION }}-${{ hashFiles('poetry.lock') }}
+            venv-${{ runner.os }}-${{ env.PYTHON_VERSION }}-
+      - name: Install dependencies
+        run: poetry install --no-interaction --no-root
+      - name: Run tests
+        run: poetry run pytest
