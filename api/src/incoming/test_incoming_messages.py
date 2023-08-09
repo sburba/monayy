@@ -1,5 +1,3 @@
-import uuid
-
 from sqlalchemy.ext.asyncio import AsyncConnection
 
 from src.account.types import AccountDatasourceType
@@ -8,10 +6,7 @@ from src.incoming.incoming_messages import (
     IncomingMessage,
 )
 
-import pytest
 
-
-@pytest.mark.asyncio
 async def test_incoming_messages(test_db: AsyncConnection):
     s = IncomingMessageService(test_db)
     idOne = await s.queue_incoming_email(

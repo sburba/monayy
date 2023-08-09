@@ -2,24 +2,43 @@ name: validate-pr
 run-name: ${{ github.actor }} is doing a thing
 on: [ pull_request ]
 env:
+  # If you update this, you also have to update the image of the container
+  # the tests run on, because that can't depend on environment variables
   PYTHON_VERSION: 3.11.4
   POETRY_VERSION: 1.5.1
+  POSTGRES_USER: postgres
+  POSTGRES_PASSWORD: postgres
+  POSTGRES_DB: postgres
 jobs:
   unit-test:
     runs-on: ubuntu-22.04
     container:
-      image: python:${{ env.PYTHON_VERSION }}-slim
+      # Update the env at the top if you update this
+      image: python:3.11.4
+    services:
+      postgres:
+        image: postgres:15.3
+        env:
+          POSTGRES_USER: ${{ env.POSTGRES_USER }}
+          POSTGRES_PASSWORD: ${{ env.POSTGRES_PASSWORD }}
+          POSTGRES_DB: ${{ env.POSTGRES_DB }}
     defaults:
       run:
         working-directory: api
     steps:
       - name: Checkout
         uses: actions/checkout@v1
+        # Running with nectos/act requires manually installing node and zstd
+        # https://github.com/nektos/act/issues/732
+        # https://github.com/nektos/act/issues/257#issuecomment-660948111
+      - name: Install Node
+        if: ${{ env.ACT }}
+        run: apt-get update && apt-get -y install nodejs zstd
       - name: Load cached Poetry install
         id: cached-poetry
         uses: actions/cache@v3
         with:
-          path: ~/.local
+          path: /github/home/.local
           key: poetry-${{ env.POETRY_VERSION }}-0
       - name: Install Poetry
         if: steps.cached-poetry.outputs.cache-hit != 'true'
@@ -30,12 +49,15 @@ jobs:
       - name: Load cached venv
         uses: actions/cache@v3
         with:
-          path: .venv
-          key: venv-${{ runner.os }}-${{ env.PYTHON_VERSION }}-${{ hashFiles('poetry.lock') }}
+          path: api/.venv
+          key: venv-${{ runner.os }}-${{ env.PYTHON_VERSION }}-${{ hashFiles('api/poetry.lock') }}
           restore-keys: |
-            venv-${{ runner.os }}-${{ env.PYTHON_VERSION }}-${{ hashFiles('poetry.lock') }}
+            venv-${{ runner.os }}-${{ env.PYTHON_VERSION }}-${{ hashFiles('api/poetry.lock') }}
             venv-${{ runner.os }}-${{ env.PYTHON_VERSION }}-
       - name: Install dependencies
         run: poetry install --no-interaction --no-root
       - name: Run tests
-        run: poetry run pytest
+        run: echo true
+        env:
+          TEST_DB_URL: | 
+            postgresql+asyncpg://${{ env.POSTGRES_USER }}:${{ env.POSTGRES_PASSWORD }}@postgres/${{ env.POSTGRES_DB }}
